@@ -20,6 +20,57 @@ GitHub ──webhook──▶ nixci (axum) ──spawn──▶ nix-fast-build
 4. Streams output to web UI via SSE and persists to SQLite
 5. Reports commit status back to GitHub
 
+## GitHub App setup
+
+nixci authenticates as a [GitHub App](https://docs.github.com/en/apps) using JWT — no OAuth callbacks, no user login flow. It's purely server-to-server.
+
+### 1. Create the app
+
+Go to **GitHub Settings → Developer settings → GitHub Apps → New GitHub App** and fill in:
+
+| Field | Value |
+|---|---|
+| **Name** | `nixci` (or whatever you like) |
+| **Homepage URL** | Your server URL, e.g. `https://ci.example.com` |
+| **Webhook URL** | `https://ci.example.com/webhooks/github` |
+| **Webhook secret** | Generate one: `openssl rand -hex 32` |
+
+### 2. Set permissions
+
+Under **Repository permissions**:
+
+| Permission | Access |
+|---|---|
+| Commit statuses | **Read & write** |
+| Contents | **Read-only** |
+| Pull requests | **Read-only** |
+| Metadata | **Read-only** (always on) |
+
+### 3. Subscribe to events
+
+Check these boxes:
+
+- **Push**
+- **Pull request**
+
+### 4. Create and configure
+
+1. Set **"Where can this app be installed?"** → "Only on this account" (or "Any account" for public use)
+2. Click **Create GitHub App**
+3. Note the **App ID** at the top of the settings page
+4. Scroll down → **Generate a private key** → saves a `.pem` file
+5. In the sidebar, click **Install App** → install on your org/account, selecting which repos to give it access to
+
+### 5. Point nixci at it
+
+```bash
+export NIXCI_GITHUB_APP_ID=123456
+export NIXCI_GITHUB_PRIVATE_KEY=/path/to/your-app.private-key.pem
+export NIXCI_GITHUB_WEBHOOK_SECRET=the-secret-you-generated
+```
+
+That's it. No OAuth, no callback URLs, no user-facing auth.
+
 ## Quick start
 
 ```bash
